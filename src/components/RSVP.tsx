@@ -17,16 +17,20 @@ import {
   Loader2,
   Database,
   LogIn,
+  UserX,
+  AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { EVENT_DATA, Registration } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
-import { saveRsvpToFirestore } from '../services/rsvpService.ts';
+import { saveRsvpToFirestore, unRsvpFromFirestore } from '../services/rsvpService.ts';
 
 interface RSVPProps {
   registration: Registration | null;
   onRegisterSuccess: (reg: Registration) => void;
   onClearRegistration: () => void;
+  onUnRsvp?: (registrationId: string) => Promise<void> | void;
   showToast: (msg: string) => void;
 }
 
@@ -34,6 +38,7 @@ export const RSVP: React.FC<RSVPProps> = ({
   registration,
   onRegisterSuccess,
   onClearRegistration,
+  onUnRsvp,
   showToast,
 }) => {
   const { user, userProfile, openAuthModal } = useAuth();
@@ -54,6 +59,8 @@ export const RSVP: React.FC<RSVPProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [isUnRsvping, setIsUnRsvping] = useState(false);
+  const [showUnRsvpConfirm, setShowUnRsvpConfirm] = useState(false);
 
   // Auto-prefill if user is logged in
   useEffect(() => {
@@ -66,6 +73,27 @@ export const RSVP: React.FC<RSVPProps> = ({
       }));
     }
   }, [user, userProfile, registration]);
+
+  // Handle Un-RSVP (deletion from Firestore and state)
+  const handleUnRsvp = async () => {
+    if (!registration) return;
+    setIsUnRsvping(true);
+    try {
+      if (onUnRsvp) {
+        await onUnRsvp(registration.registrationId);
+      } else {
+        await unRsvpFromFirestore(registration.registrationId, user?.uid);
+        onClearRegistration();
+        showToast('Your RSVP has been cancelled and removed from the attendee list.');
+      }
+      setShowUnRsvpConfirm(false);
+    } catch (err: any) {
+      console.error('Error during Un-RSVP:', err);
+      showToast('Error cancelling RSVP. Please try again.');
+    } finally {
+      setIsUnRsvping(false);
+    }
+  };
 
   // Validate form fields strictly according to guidelines
   const validate = () => {
@@ -103,6 +131,10 @@ export const RSVP: React.FC<RSVPProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -217,35 +249,58 @@ export const RSVP: React.FC<RSVPProps> = ({
               </p>
             </div>
 
-            {/* Firebase User Authentication Status Banner */}
-            {user ? (
-              <div className="mb-6 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-gray-700">
-                    Signed in as <strong className="text-blue-900">{user.email}</strong>
-                  </span>
+            {!user ? (
+              <div className="bg-white border border-gray-200 rounded-2xl p-7 sm:p-9 shadow-xs text-center space-y-6">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
+                  <LogIn className="w-7 h-7" />
                 </div>
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
-                  <Database className="w-3 h-3 text-blue-600" />
-                  Firestore Linked
-                </span>
+                <div className="max-w-md mx-auto space-y-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    Sign in to RSVP
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Please sign in or create an account to reserve your spot for Build With AI. Your attendee pass and registration details will be securely saved to your account in Firebase Firestore.
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    id="rsvp-signin-redirect-btn"
+                    onClick={() => openAuthModal('signin')}
+                    className="w-full sm:w-auto px-6 py-3 bg-[#4285F4] hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In to RSVP</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="rsvp-signup-redirect-btn"
+                    onClick={() => openAuthModal('signup')}
+                    className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 text-sm font-semibold rounded-xl transition-all cursor-pointer"
+                  >
+                    Create Account
+                  </button>
+                </div>
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-center gap-2 text-xs text-gray-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Free registration • Real-time cloud synchronization via Firebase</span>
+                </div>
               </div>
             ) : (
-              <div className="mb-6 p-3.5 rounded-xl bg-gray-50 border border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-                <span className="text-gray-600">
-                  Want to sync and manage your pass with Firebase?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => openAuthModal('signin')}
-                  className="inline-flex items-center gap-1.5 font-medium text-blue-700 hover:text-blue-800 hover:underline self-start sm:self-auto cursor-pointer"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  Sign in or create account
-                </button>
-              </div>
-            )}
+              <>
+                {/* Firebase User Authentication Status Banner */}
+                <div className="mb-6 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-gray-700">
+                      Signed in as <strong className="text-blue-900">{user.email}</strong>
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                    <Database className="w-3 h-3 text-blue-600" />
+                    Firestore Linked
+                  </span>
+                </div>
 
             {/* Clean, Simple Form Container */}
             <form
@@ -429,8 +484,10 @@ export const RSVP: React.FC<RSVPProps> = ({
                 <span>Free entry • Stored securely in Firebase Firestore</span>
               </div>
             </form>
-          </div>
-        ) : (
+          </>
+          )}
+        </div>
+      ) : (
           /* ================= RSVP SUCCESS ================= */
           <div id="rsvp-success-card" className="space-y-6">
             {/* Success Header */}
@@ -576,7 +633,7 @@ export const RSVP: React.FC<RSVPProps> = ({
               </div>
             )}
 
-            {/* Action Buttons as requested: Add to Calendar, View Registration, Print Registration */}
+            {/* Action Buttons: Add to Calendar, Print Registration, Un-RSVP */}
             <div className="flex flex-wrap items-center justify-center gap-3 no-print">
               <button
                 type="button"
@@ -600,17 +657,84 @@ export const RSVP: React.FC<RSVPProps> = ({
 
               <button
                 type="button"
-                id="btn-new-registration"
-                onClick={() => {
-                  if (window.confirm('Do you want to clear this saved pass to register another attendee?')) {
-                    onClearRegistration();
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-700 hover:text-red-700 transition-colors cursor-pointer"
+                id="btn-un-rsvp"
+                onClick={() => setShowUnRsvpConfirm(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 active:bg-red-200 transition-colors cursor-pointer"
               >
-                <span>Register someone else</span>
+                <UserX className="w-4 h-4 text-red-600" />
+                <span>Un-RSVP</span>
               </button>
             </div>
+
+            {/* Confirmation Dialog for Un-RSVP */}
+            {showUnRsvpConfirm && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="unrsvp-modal-title"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-in fade-in duration-150 no-print"
+                onClick={() => !isUnRsvping && setShowUnRsvpConfirm(false)}
+              >
+                <div
+                  className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 space-y-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 id="unrsvp-modal-title" className="text-lg font-bold text-gray-900">
+                      Cancel Your RSVP?
+                    </h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      Are you sure you want to cancel the registration for{' '}
+                      <strong>{registration.fullName}</strong>?
+                    </p>
+                    <div className="text-xs text-red-700 bg-red-50 p-3 rounded-xl border border-red-200/70 text-left space-y-1">
+                      <p className="font-semibold flex items-center gap-1">
+                        <Trash2 className="w-3.5 h-3.5" />
+                        This will:
+                      </p>
+                      <ul className="list-disc list-inside space-y-0.5 text-[11px] text-red-600">
+                        <li>Permanently delete pass ID <strong className="font-mono">{registration.registrationId}</strong> from Firebase Firestore</li>
+                        <li>Release your reserved seat for other attendees</li>
+                        <li>Clear the registration from your account</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end gap-2.5">
+                    <button
+                      type="button"
+                      disabled={isUnRsvping}
+                      onClick={() => setShowUnRsvpConfirm(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer disabled:opacity-60"
+                    >
+                      Keep Reservation
+                    </button>
+                    <button
+                      type="button"
+                      id="confirm-un-rsvp-btn"
+                      disabled={isUnRsvping}
+                      onClick={handleUnRsvp}
+                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-60 shadow-xs"
+                    >
+                      {isUnRsvping ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Cancelling RSVP...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4" />
+                          <span>Yes, Un-RSVP</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

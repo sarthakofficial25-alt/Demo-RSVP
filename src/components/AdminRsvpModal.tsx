@@ -11,11 +11,13 @@ import {
   Copy,
   Check,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react';
 import {
   testFirestoreConnection,
   syncLocalRsvpsToFirestore,
   fetchAllRsvps,
+  unRsvpFromFirestore,
   FirestoreRsvpRecord,
 } from '../services/rsvpService.ts';
 
@@ -295,11 +297,26 @@ service cloud.firestore {
                       <span className="font-semibold text-gray-900 block">{rsvp.fullName}</span>
                       <span className="text-[11px] text-gray-500">{rsvp.email} • {rsvp.organization}</span>
                     </div>
-                    <div className="text-right">
-                      <span className="font-mono font-bold text-blue-600 block">{rsvp.registrationId}</span>
-                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
-                        <CheckCircle2 className="w-2.5 h-2.5" /> In Cloud
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="font-mono font-bold text-blue-600 block">{rsvp.registrationId}</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
+                          <CheckCircle2 className="w-2.5 h-2.5" /> In Cloud
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        title="Delete RSVP / Un-RSVP from Firestore"
+                        onClick={async () => {
+                          if (window.confirm(`Delete RSVP ${rsvp.registrationId} (${rsvp.fullName}) from Firestore?`)) {
+                            await unRsvpFromFirestore(rsvp.registrationId, rsvp.userId);
+                            await loadData();
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))}

@@ -1,5 +1,20 @@
-import React from 'react';
-import { X, Calendar, Clock, MapPin, Printer, CalendarPlus, Copy, Check, CheckCircle2, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  X,
+  Calendar,
+  Clock,
+  MapPin,
+  Printer,
+  CalendarPlus,
+  Copy,
+  Check,
+  CheckCircle2,
+  Database,
+  UserX,
+  AlertTriangle,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
 import { EVENT_DATA, Registration } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
 
@@ -9,6 +24,7 @@ interface RegistrationModalProps {
   registration: Registration | null;
   onPrint: () => void;
   onAddToCalendar: () => void;
+  onUnRsvp?: (registrationId: string) => Promise<void> | void;
   showToast: (msg: string) => void;
 }
 
@@ -18,9 +34,12 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
   registration,
   onPrint,
   onAddToCalendar,
+  onUnRsvp,
   showToast,
 }) => {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showUnRsvpConfirm, setShowUnRsvpConfirm] = useState(false);
+  const [isUnRsvping, setIsUnRsvping] = useState(false);
 
   if (!isOpen || !registration) return null;
 
@@ -29,6 +48,20 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
     setCopied(true);
     showToast('Registration ID copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleConfirmUnRsvp = async () => {
+    if (!onUnRsvp) return;
+    setIsUnRsvping(true);
+    try {
+      await onUnRsvp(registration.registrationId);
+      setShowUnRsvpConfirm(false);
+      onClose();
+    } catch (err) {
+      console.error('Failed to un-rsvp from modal:', err);
+    } finally {
+      setIsUnRsvping(false);
+    }
   };
 
   return (
@@ -151,31 +184,95 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex flex-wrap items-center justify-end gap-2.5 px-6 py-4 bg-gray-50 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={onAddToCalendar}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            <CalendarPlus className="w-3.5 h-3.5 text-blue-600" />
-            <span>Add to Calendar</span>
-          </button>
-          <button
-            type="button"
-            onClick={onPrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5 text-gray-600" />
-            <span>Print Pass</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-          >
-            Done
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2.5 px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <div>
+            {onUnRsvp && (
+              <button
+                type="button"
+                id="modal-un-rsvp-btn"
+                onClick={() => setShowUnRsvpConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors cursor-pointer"
+              >
+                <UserX className="w-3.5 h-3.5 text-red-600" />
+                <span>Un-RSVP</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onAddToCalendar}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <CalendarPlus className="w-3.5 h-3.5 text-blue-600" />
+              <span>Add to Calendar</span>
+            </button>
+            <button
+              type="button"
+              onClick={onPrint}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5 text-gray-600" />
+              <span>Print Pass</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+            >
+              Done
+            </button>
+          </div>
         </div>
+
+        {/* Confirmation Dialog for Un-RSVP inside Modal */}
+        {showUnRsvpConfirm && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-white/95 backdrop-blur-xs animate-in fade-in"
+          >
+            <div className="max-w-sm text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h4 className="text-base font-bold text-gray-900">Cancel Your RSVP?</h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                This will delete your registration (<strong className="font-mono">{registration.registrationId}</strong>) from the Firestore database and release your seat.
+              </p>
+              <div className="pt-2 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={isUnRsvping}
+                  onClick={() => setShowUnRsvpConfirm(false)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Keep Reservation
+                </button>
+                <button
+                  type="button"
+                  id="confirm-modal-un-rsvp-btn"
+                  disabled={isUnRsvping}
+                  onClick={handleConfirmUnRsvp}
+                  className="px-3.5 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  {isUnRsvping ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Yes, Un-RSVP</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

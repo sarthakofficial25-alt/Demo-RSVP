@@ -2,6 +2,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  deleteDoc,
   collection,
   query,
   where,
@@ -95,6 +96,82 @@ export async function saveRsvpToFirestore(
   }
 
   return record;
+}
+
+/**
+ * Permanently delete/cancel an RSVP from Cloud Firestore and local storage caches.
+ */
+export async function unRsvpFromFirestore(
+  registrationId: string,
+  userId?: string | null
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // 1. Delete the document from Cloud Firestore 'rsvps' collection
+    const rsvpRef = doc(db, 'rsvps', registrationId);
+    await deleteDoc(rsvpRef);
+
+    // Also attempt uppercase collection if it exists
+    try {
+      const rsvpCapRef = doc(db, 'Rsvps', registrationId);
+      await deleteDoc(rsvpCapRef);
+    } catch {
+      // ignore
+    }
+
+    // 2. If user ID is attached, clear the RSVP state in their user document
+    if (userId) {
+      try {
+        const userRef = doc(db, 'users', userId);
+        const userCapRef = doc(db, 'Users', userId);
+        const clearData = {
+          hasRsvp: false,
+          registrationId: null,
+          lastUnRsvpAt: serverTimestamp(),
+        };
+        await Promise.allSettled([
+          setDoc(userRef, clearData, { merge: true }),
+          setDoc(userCapRef, clearData, { merge: true }),
+        ]);
+      } catch (userErr) {
+        console.warn('Could not reset RSVP status on user document:', userErr);
+      }
+    }
+
+    // 3. Remove from local cache
+    try {
+      const existingRaw = localStorage.getItem(LOCAL_RSVP_CACHE_KEY);
+      if (existingRaw) {
+        const existingList: FirestoreRsvpRecord[] = JSON.parse(existingRaw);
+        const updatedList = existingList.filter((r) => r.registrationId !== registrationId);
+        localStorage.setItem(LOCAL_RSVP_CACHE_KEY, JSON.stringify(updatedList));
+      }
+    } catch {
+      // ignore
+    }
+
+    return {
+      success: true,
+      message: 'Your registration has been removed from the RSVP list.',
+    };
+  } catch (err: any) {
+    console.error('Error deleting RSVP from Firestore:', err);
+    // Still clean local cache so UI remains consistent
+    try {
+      const existingRaw = localStorage.getItem(LOCAL_RSVP_CACHE_KEY);
+      if (existingRaw) {
+        const existingList: FirestoreRsvpRecord[] = JSON.parse(existingRaw);
+        const updatedList = existingList.filter((r) => r.registrationId !== registrationId);
+        localStorage.setItem(LOCAL_RSVP_CACHE_KEY, JSON.stringify(updatedList));
+      }
+    } catch {
+      // ignore
+    }
+
+    return {
+      success: false,
+      message: err?.message || 'Failed to cancel RSVP in Firestore.',
+    };
+  }
 }
 
 /**

@@ -13,7 +13,7 @@ import { RegistrationModal } from './components/RegistrationModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { AdminRsvpModal } from './components/AdminRsvpModal.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
-import { fetchUserRsvp } from './services/rsvpService.ts';
+import { fetchUserRsvp, unRsvpFromFirestore } from './services/rsvpService.ts';
 import { Registration } from './data/eventData.ts';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -25,7 +25,7 @@ function AppContent() {
   const [isPassModalOpen, setIsPassModalOpen] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
 
-  const { user } = useAuth();
+  const { user, openAuthModal } = useAuth();
 
   // Load registration from localStorage on initial render
   useEffect(() => {
@@ -82,10 +82,35 @@ function AppContent() {
     showToast('Previous pass cleared. You can now register a new attendee.');
   };
 
+  const handleUnRsvp = async (regId: string) => {
+    try {
+      await unRsvpFromFirestore(regId, user?.uid || null);
+      setRegistration(null);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (err) {
+        console.error('Error removing registration from localStorage:', err);
+      }
+      setIsPassModalOpen(false);
+      showToast('Your RSVP has been cancelled and deleted from the attendee list.');
+    } catch (err) {
+      console.error('Error during Un-RSVP:', err);
+      showToast('Error cancelling RSVP. Please try again.');
+      throw err;
+    }
+  };
+
   const handleScrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleRsvpNavClick = () => {
+    handleScrollToSection('rsvp');
+    if (!user) {
+      openAuthModal('signin');
     }
   };
 
@@ -136,7 +161,7 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-[#FAFAFA] text-[#202124]">
       {/* Sticky Header Navbar */}
       <Navbar
-        onRsvpClick={() => handleScrollToSection('rsvp')}
+        onRsvpClick={handleRsvpNavClick}
         hasRegistration={!!registration}
         onViewPass={() => setIsPassModalOpen(true)}
         onOpenAdminRsvps={() => setIsAdminModalOpen(true)}
@@ -146,7 +171,7 @@ function AppContent() {
       <main className="grow">
         {/* Event Hero / Header */}
         <EventHeader
-          onRsvpClick={() => handleScrollToSection('rsvp')}
+          onRsvpClick={handleRsvpNavClick}
           hasRegistration={!!registration}
           onViewPass={() => setIsPassModalOpen(true)}
         />
@@ -174,6 +199,7 @@ function AppContent() {
           registration={registration}
           onRegisterSuccess={handleRegisterSuccess}
           onClearRegistration={handleClearRegistration}
+          onUnRsvp={handleUnRsvp}
           showToast={showToast}
         />
       </main>
@@ -191,6 +217,7 @@ function AppContent() {
         registration={registration}
         onPrint={handlePrint}
         onAddToCalendar={handleAddToCalendar}
+        onUnRsvp={handleUnRsvp}
         showToast={showToast}
       />
 
