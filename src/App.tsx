@@ -16,7 +16,7 @@ import { fetchUserRsvp, unRsvpFromFirestore } from './services/rsvpService.ts';
 import { Registration } from './data/eventData.ts';
 import { CheckCircle2 } from 'lucide-react';
 
-const STORAGE_KEY = 'gdg_fiem_bwai_registration_v1';
+const getUserRsvpKey = (uid: string) => `gdg_user_rsvp_${uid}`;
 
 function AppContent() {
   const [registration, setRegistration] = useState<Registration | null>(null);
@@ -25,33 +25,71 @@ function AppContent() {
 
   const { user, openAuthModal } = useAuth();
 
-  // Load registration from localStorage on initial render
+  // Ensure registrations are tied to the authenticated user's session only.
+  // When a user logs out, their registration is immediately cleared so no registration is visible.
   useEffect(() => {
+    // Purge any legacy global keys to prevent registration leaks across accounts
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setRegistration(JSON.parse(saved));
+      localStorage.removeItem('gdg_fiem_bwai_registration_v1');
+      localStorage.removeItem('gdg_build_with_ai_registration_2026');
+      localStorage.removeItem('gdg_fiem_cloud_rsvps_cache');
+    } catch {
+      // ignore
+    }
+
+    if (!user) {
+      // User is logged out: immediately clear registration state and close modal
+      setRegistration(null);
+      setIsPassModalOpen(false);
+      return;
+    }
+
+    // User is logged in: read user-scoped cache for instant responsive UI
+    const userKey = getUserRsvpKey(user.uid);
+    try {
+      const cached = localStorage.getItem(userKey);
+      if (cached) {
+        setRegistration(JSON.parse(cached));
+      } else {
+        setRegistration(null);
       }
     } catch (err) {
-      console.error('Error reading registration from localStorage:', err);
+      console.error('Error reading user registration cache:', err);
+      setRegistration(null);
     }
-  }, []);
 
-  // When user logs in, check Firestore for their RSVP record to sync across devices
-  useEffect(() => {
+    let isCurrent = true;
     async function syncFirestoreRsvp() {
       if (!user) return;
       try {
         const cloudRsvp = await fetchUserRsvp(user.uid, user.email);
+        if (!isCurrent) return;
         if (cloudRsvp) {
           setRegistration(cloudRsvp);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudRsvp));
+          try {
+            localStorage.setItem(userKey, JSON.stringify(cloudRsvp));
+          } catch {
+            // ignore
+          }
+        } else {
+          // If no cloud record exists for this user, ensure registration is null
+          setRegistration(null);
+          try {
+            localStorage.removeItem(userKey);
+          } catch {
+            // ignore
+          }
         }
       } catch (err) {
         console.warn('Could not sync RSVP from Firestore:', err);
       }
     }
+
     syncFirestoreRsvp();
+
+    return () => {
+      isCurrent = false;
+    };
   }, [user]);
 
   const showToast = (message: string) => {
@@ -62,9 +100,10 @@ function AppContent() {
   };
 
   const handleRegisterSuccess = (newReg: Registration) => {
+    if (!user) return;
     setRegistration(newReg);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newReg));
+      localStorage.setItem(getUserRsvpKey(user.uid), JSON.stringify(newReg));
     } catch (err) {
       console.error('Error saving registration to localStorage:', err);
     }
@@ -72,10 +111,12 @@ function AppContent() {
 
   const handleClearRegistration = () => {
     setRegistration(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (err) {
-      console.error('Error removing registration from localStorage:', err);
+    if (user) {
+      try {
+        localStorage.removeItem(getUserRsvpKey(user.uid));
+      } catch (err) {
+        console.error('Error removing registration from localStorage:', err);
+      }
     }
     showToast('Previous pass cleared. You can now register a new attendee.');
   };
@@ -84,10 +125,12 @@ function AppContent() {
     try {
       await unRsvpFromFirestore(regId, user?.uid || null);
       setRegistration(null);
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (err) {
-        console.error('Error removing registration from localStorage:', err);
+      if (user) {
+        try {
+          localStorage.removeItem(getUserRsvpKey(user.uid));
+        } catch (err) {
+          console.error('Error removing registration from localStorage:', err);
+        }
       }
       setIsPassModalOpen(false);
       showToast('Your RSVP has been cancelled and deleted from the attendee list.');
@@ -160,7 +203,7 @@ function AppContent() {
       {/* Sticky Header Navbar */}
       <Navbar
         onRsvpClick={handleRsvpNavClick}
-        hasRegistration={!!registration}
+        hasRegistration={!!(user && registration)}
         onViewPass={() => setIsPassModalOpen(true)}
       />
 
@@ -169,7 +212,7 @@ function AppContent() {
         {/* Event Hero / Header */}
         <EventHeader
           onRsvpClick={handleRsvpNavClick}
-          hasRegistration={!!registration}
+          hasRegistration={!!(user && registration)}
           onViewPass={() => setIsPassModalOpen(true)}
         />
 
@@ -193,7 +236,7 @@ function AppContent() {
 
         {/* Primary RSVP Form & Pass Confirmation */}
         <RSVP
-          registration={registration}
+          registration={user ? registration : null}
           onRegisterSuccess={handleRegisterSuccess}
           onClearRegistration={handleClearRegistration}
           onUnRsvp={handleUnRsvp}
@@ -208,9 +251,9 @@ function AppContent() {
 
       {/* Quick View Registration Modal */}
       <RegistrationModal
-        isOpen={isPassModalOpen}
+        isOpen={isPassModalOpen && !!(user && registration)}
         onClose={() => setIsPassModalOpen(false)}
-        registration={registration}
+        registration={user ? registration : null}
         onPrint={handlePrint}
         onAddToCalendar={handleAddToCalendar}
         onUnRsvp={handleUnRsvp}

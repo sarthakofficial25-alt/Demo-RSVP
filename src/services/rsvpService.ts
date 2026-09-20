@@ -27,7 +27,20 @@ export interface FirestoreRsvpRecord {
   syncedToCloud?: boolean;
 }
 
-const LOCAL_RSVP_CACHE_KEY = 'gdg_fiem_cloud_rsvps_cache';
+const USER_RSVP_PREFIX = 'gdg_user_rsvp_';
+
+/**
+ * Helper to purge legacy global caches.
+ */
+function clearLegacyGlobalCache() {
+  try {
+    localStorage.removeItem('gdg_fiem_cloud_rsvps_cache');
+    localStorage.removeItem('gdg_fiem_bwai_registration_v1');
+    localStorage.removeItem('gdg_build_with_ai_registration_2026');
+  } catch {
+    // ignore
+  }
+}
 
 /**
  * Save an RSVP to Firestore in the 'rsvps' collection.
@@ -85,14 +98,14 @@ export async function saveRsvpToFirestore(
     record.syncedToCloud = false;
   }
 
-  // Always cache locally as well
-  try {
-    const existingRaw = localStorage.getItem(LOCAL_RSVP_CACHE_KEY);
-    const existingList: FirestoreRsvpRecord[] = existingRaw ? JSON.parse(existingRaw) : [];
-    const updatedList = [record, ...existingList.filter((r) => r.registrationId !== record.registrationId)];
-    localStorage.setItem(LOCAL_RSVP_CACHE_KEY, JSON.stringify(updatedList));
-  } catch {
-    // ignore
+  // User-scoped cache only - never store global lists
+  clearLegacyGlobalCache();
+  if (userId) {
+    try {
+      localStorage.setItem(USER_RSVP_PREFIX + userId, JSON.stringify(record));
+    } catch {
+      // ignore
+    }
   }
 
   return record;
@@ -135,19 +148,16 @@ export async function unRsvpFromFirestore(
       } catch (userErr) {
         console.warn('Could not reset RSVP status on user document:', userErr);
       }
+
+      // Remove from user-scoped local cache
+      try {
+        localStorage.removeItem(USER_RSVP_PREFIX + userId);
+      } catch {
+        // ignore
+      }
     }
 
-    // 3. Remove from local cache
-    try {
-      const existingRaw = localStorage.getItem(LOCAL_RSVP_CACHE_KEY);
-      if (existingRaw) {
-        const existingList: FirestoreRsvpRecord[] = JSON.parse(existingRaw);
-        const updatedList = existingList.filter((r) => r.registrationId !== registrationId);
-        localStorage.setItem(LOCAL_RSVP_CACHE_KEY, JSON.stringify(updatedList));
-      }
-    } catch {
-      // ignore
-    }
+    clearLegacyGlobalCache();
 
     return {
       success: true,
@@ -155,17 +165,15 @@ export async function unRsvpFromFirestore(
     };
   } catch (err: any) {
     console.error('Error deleting RSVP from Firestore:', err);
-    // Still clean local cache so UI remains consistent
-    try {
-      const existingRaw = localStorage.getItem(LOCAL_RSVP_CACHE_KEY);
-      if (existingRaw) {
-        const existingList: FirestoreRsvpRecord[] = JSON.parse(existingRaw);
-        const updatedList = existingList.filter((r) => r.registrationId !== registrationId);
-        localStorage.setItem(LOCAL_RSVP_CACHE_KEY, JSON.stringify(updatedList));
+    // Still clean local user cache so UI remains consistent
+    if (userId) {
+      try {
+        localStorage.removeItem(USER_RSVP_PREFIX + userId);
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
+    clearLegacyGlobalCache();
 
     return {
       success: false,

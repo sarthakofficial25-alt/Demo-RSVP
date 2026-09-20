@@ -232,7 +232,7 @@ export const RSVP: React.FC<RSVPProps> = ({
   return (
     <section id="rsvp" className="py-14 sm:py-20 bg-white border-b border-gray-100">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        {!registration ? (
+        {!(user && registration) ? (
           /* ================= RSVP FORM ================= */
           <div>
             {/* Section Heading */}

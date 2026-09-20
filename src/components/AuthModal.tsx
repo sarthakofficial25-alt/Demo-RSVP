@@ -15,7 +15,6 @@ import {
   Check,
   ExternalLink,
   ShieldAlert,
-  Database,
 } from 'lucide-react';
 import { GdgLogo } from './GdgLogo.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -113,13 +112,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
     if (code === 'permission-denied' || rawMsg.includes('Missing or insufficient permissions')) {
       return {
-        simpleMsg: 'Firestore permission denied.',
+        simpleMsg: 'Account service access temporarily restricted.',
         info: {
           type: 'permission-denied',
-          title: 'Firestore Authorization Required',
-          message: 'Your Cloud Firestore Security Rules in project "sarthak-62d28" are restricting database read/write access.',
-          step: 'Check the Firestore Rules guide below to allow attendee profile and RSVP sync.',
-          link: 'https://console.firebase.google.com/project/sarthak-62d28/firestore/rules',
+          title: 'Authorization Required',
+          message: 'Your account permissions are currently restricting access. Please contact event support or try logging in again.',
+          step: 'Check your verified account credentials to confirm event access.',
         },
       };
     }

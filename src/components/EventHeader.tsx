@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
 import { EVENT_DATA } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface EventHeaderProps {
   onRsvpClick?: () => void;
@@ -14,6 +15,8 @@ export const EventHeader: React.FC<EventHeaderProps> = ({
   hasRegistration,
   onViewPass,
 }) => {
+  const { user } = useAuth();
+
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
@@ -85,7 +88,7 @@ export const EventHeader: React.FC<EventHeaderProps> = ({
 
             {/* Call to Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center gap-3.5">
-              {hasRegistration ? (
+              {user && hasRegistration ? (
                 <button
                   id="header-view-registration-btn"
                   onClick={onViewPass}

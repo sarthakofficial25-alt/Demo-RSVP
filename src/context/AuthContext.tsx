@@ -77,6 +77,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleSignOut = async () => {
+    try {
+      localStorage.removeItem('gdg_fiem_bwai_registration_v1');
+      localStorage.removeItem('gdg_build_with_ai_registration_2026');
+      localStorage.removeItem('gdg_fiem_cloud_rsvps_cache');
+    } catch {
+      // ignore
+    }
     await signOutUser();
     setUser(null);
     setUserProfile(null);

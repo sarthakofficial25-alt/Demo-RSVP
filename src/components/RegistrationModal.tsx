@@ -17,6 +17,7 @@ import {
 import { EVENT_DATA, Registration } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
 import { QrCodeCard } from './QrCodeCard.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface RegistrationModalProps {
   isOpen: boolean;
@@ -37,11 +38,12 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
   onUnRsvp,
   showToast,
 }) => {
+  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const [showUnRsvpConfirm, setShowUnRsvpConfirm] = useState(false);
   const [isUnRsvping, setIsUnRsvping] = useState(false);
 
-  if (!isOpen || !registration) return null;
+  if (!isOpen || !registration || !user) return null;
 
   const copyId = () => {
     navigator.clipboard.writeText(registration.registrationId);

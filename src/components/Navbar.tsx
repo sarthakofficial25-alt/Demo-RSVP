@@ -179,7 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {hasRegistration ? (
+            {user && hasRegistration ? (
               <button
                 id="navbar-view-pass-btn"
                 onClick={onViewPass}
@@ -213,7 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Sign In
               </button>
             )}
-            {hasRegistration && (
+            {user && hasRegistration && (
               <button
                 id="mobile-view-pass-icon-btn"
                 onClick={onViewPass}
@@ -299,7 +299,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           ))}
           <div className="pt-2 border-t border-gray-100">
-            {hasRegistration ? (
+            {user && hasRegistration ? (
               <button
                 id="mobile-menu-view-pass-btn"
                 onClick={() => {
