@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, LogIn, LogOut, Ticket, ChevronDown, Database } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, Ticket, ChevronDown } from 'lucide-react';
 import { EVENT_DATA } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -8,14 +8,12 @@ interface NavbarProps {
   onRsvpClick?: () => void;
   hasRegistration?: boolean;
   onViewPass?: () => void;
-  onOpenAdminRsvps?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onRsvpClick,
   hasRegistration,
   onViewPass,
-  onOpenAdminRsvps,
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -132,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {profileDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-[11px] text-gray-400">Signed in to Firebase</p>
+                      <p className="text-[11px] text-gray-400">Signed In</p>
                       <p className="text-sm font-semibold text-gray-900 truncate">
                         {displayName}
                       </p>
@@ -154,19 +152,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <Ticket className="w-4 h-4 text-blue-600" />
                         View Attendee Pass
-                      </button>
-                    )}
-
-                    {onOpenAdminRsvps && (
-                      <button
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          onOpenAdminRsvps();
-                        }}
-                        className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer"
-                      >
-                        <Database className="w-4 h-4 text-emerald-600" />
-                        Firestore Live RSVPs
                       </button>
                     )}
 
@@ -289,7 +274,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-blue-900">Build With AI Account</p>
-                <p className="text-[11px] text-blue-700">Sign in to save RSVP to Firebase</p>
+                <p className="text-[11px] text-blue-700">Sign in to manage your attendee pass</p>
               </div>
               <button
                 onClick={() => {

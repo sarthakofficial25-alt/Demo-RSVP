@@ -9,7 +9,6 @@ import {
   Copy,
   Check,
   CheckCircle2,
-  Database,
   UserX,
   AlertTriangle,
   Trash2,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { EVENT_DATA, Registration } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
+import { QrCodeCard } from './QrCodeCard.tsx';
 
 interface RegistrationModalProps {
   isOpen: boolean;
@@ -157,27 +157,40 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
             </div>
           </div>
 
-          {/* Event Schedule Info */}
-          <div className="space-y-2 text-xs text-gray-600 pt-1">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span>{EVENT_DATA.date}</span>
+          {/* Event Schedule Info and QR Code */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="shrink-0">
+              <QrCodeCard
+                value={registration.registrationId}
+                size={110}
+                label="Entry QR Code"
+                showBorder={true}
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span>{EVENT_DATA.time}</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-              <span>{EVENT_DATA.venue}, {EVENT_DATA.city}</span>
+            <div className="grow space-y-2 text-xs text-gray-600 w-full">
+              <div className="flex items-center gap-2 text-gray-700">
+                <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span><strong>Date:</strong> {EVENT_DATA.date}</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-700">
+                <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span><strong>Time:</strong> {EVENT_DATA.time}</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-700">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span><strong>Venue:</strong> {EVENT_DATA.venue}, {EVENT_DATA.city}</span>
+              </div>
+              <p className="text-[11px] text-gray-500 pt-1.5 border-t border-gray-200/70">
+                Present this QR code or ID at the entrance for verification.
+              </p>
             </div>
           </div>
 
-          {/* Firestore Status Badge */}
+          {/* Status Badge */}
           <div className="pt-2 text-[11px] text-gray-500 border-t border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
-              <Database className="w-3 h-3 text-emerald-600" />
-              <span>Saved in Firebase Firestore</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Registration Confirmed • Reserved Seat</span>
             </div>
             <span className="font-mono text-gray-500">Status: Confirmed</span>
           </div>
@@ -239,7 +252,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
               </div>
               <h4 className="text-base font-bold text-gray-900">Cancel Your RSVP?</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                This will delete your registration (<strong className="font-mono">{registration.registrationId}</strong>) from the Firestore database and release your seat.
+                This will cancel your registration (<strong className="font-mono">{registration.registrationId}</strong>) and release your seat.
               </p>
               <div className="pt-2 flex items-center justify-center gap-2">
                 <button

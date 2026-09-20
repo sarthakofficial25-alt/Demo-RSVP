@@ -210,7 +210,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           fullName,
           organization
         );
-        onSuccess?.(`Welcome, ${user.displayName || 'Developer'}! Account created and saved to Firebase.`);
+        onSuccess?.(`Welcome, ${user.displayName || 'Developer'}! Account created successfully.`);
       } else {
         const { user } = await signInWithEmail(email, password);
         onSuccess?.(`Welcome back, ${user.displayName || user.email}! Signed in successfully.`);
@@ -232,7 +232,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     setGoogleLoading(true);
     try {
       const { user } = await signInWithGoogle();
-      onSuccess?.(`Signed in with Google as ${user.displayName || user.email}! Profile synced to Firebase.`);
+      onSuccess?.(`Signed in successfully as ${user.displayName || user.email}!`);
       closeAuthModal();
     } catch (err: any) {
       const { simpleMsg, info } = parseFirebaseError(err);
@@ -275,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   : 'Sign In to Build With AI'}
               </h3>
               <p className="text-xs text-gray-500">
-                Google Developer Groups on Campus FIEM • Firebase
+                Google Developer Groups on Campus FIEM
               </p>
             </div>
           </div>
@@ -604,10 +604,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             )}
           </form>
 
-          {/* Footer note: Firebase Firestore project indicator */}
+          {/* Footer note */}
           <div className="pt-2 border-t border-gray-100 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-            <span>Firebase Project: <strong className="font-mono text-gray-600">sarthak-62d28</strong></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Official Event Registration &amp; Account Portal</span>
           </div>
         </div>
       </div>

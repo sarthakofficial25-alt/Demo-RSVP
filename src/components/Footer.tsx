@@ -5,10 +5,9 @@ import { GdgLogo } from './GdgLogo.tsx';
 
 interface FooterProps {
   onNavClick: (id: string) => void;
-  onOpenAdminRsvps?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavClick, onOpenAdminRsvps }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavClick }) => {
   return (
     <footer id="main-footer" className="bg-white border-t border-gray-200 py-12 no-print">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -81,21 +80,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavClick, onOpenAdminRsvps }) 
         {/* Bottom Disclaimer */}
         <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-600 gap-2">
           <p>© 2026 GDG on Campus FIEM. An independent developer community event.</p>
-          <div className="flex items-center gap-3">
-            {onOpenAdminRsvps && (
-              <button
-                type="button"
-                onClick={onOpenAdminRsvps}
-                className="font-mono text-[11px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
-              >
-                Firestore RSVPs & Sync
-              </button>
-            )}
-            <div className="flex items-center gap-1">
-              <span>Made with</span>
-              <Heart className="w-3 h-3 text-red-500 fill-red-500" />
-              <span>for FIEM student developers</span>
-            </div>
+          <div className="flex items-center gap-1">
+            <span>Made with</span>
+            <Heart className="w-3 h-3 text-red-500 fill-red-500" />
+            <span>for FIEM student developers</span>
           </div>
         </div>
       </div>

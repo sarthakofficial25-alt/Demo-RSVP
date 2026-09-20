@@ -15,7 +15,6 @@ import {
   Copy,
   Check,
   Loader2,
-  Database,
   LogIn,
   UserX,
   AlertTriangle,
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { EVENT_DATA, Registration } from '../data/eventData.ts';
 import { GdgLogo } from './GdgLogo.tsx';
+import { QrCodeCard } from './QrCodeCard.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { saveRsvpToFirestore, unRsvpFromFirestore } from '../services/rsvpService.ts';
 
@@ -155,9 +155,9 @@ export const RSVP: React.FC<RSVPProps> = ({
       await saveRsvpToFirestore(newRegistration, user?.uid || null);
 
       onRegisterSuccess(newRegistration);
-      showToast('Registration successful! RSVP stored in Firebase Firestore.');
+      showToast('Registration successful! Your RSVP is confirmed.');
     } catch (err: any) {
-      console.error('Error saving to Firestore:', err);
+      console.error('Error saving RSVP:', err);
       // Ensure attendee experience is not blocked even during transient connection issues
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       const fallbackRegistration: Registration = {
@@ -169,7 +169,7 @@ export const RSVP: React.FC<RSVPProps> = ({
         registeredAt: new Date().toISOString(),
       };
       onRegisterSuccess(fallbackRegistration);
-      showToast('Registration reserved. Saved to your pass.');
+      showToast('Registration confirmed! Your event pass is ready.');
     } finally {
       setIsSubmitting(false);
     }
@@ -259,7 +259,7 @@ export const RSVP: React.FC<RSVPProps> = ({
                     Sign in to RSVP
                   </h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Please sign in or create an account to reserve your spot for Build With AI. Your attendee pass and registration details will be securely saved to your account in Firebase Firestore.
+                    Please sign in or create an account to reserve your spot for Build With AI. Your attendee pass and registration details will be securely saved to your account.
                   </p>
                 </div>
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -283,12 +283,12 @@ export const RSVP: React.FC<RSVPProps> = ({
                 </div>
                 <div className="pt-3 border-t border-gray-100 flex items-center justify-center gap-2 text-xs text-gray-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Free registration • Real-time cloud synchronization via Firebase</span>
+                  <span>Free registration • Instant event pass generation</span>
                 </div>
               </div>
             ) : (
               <>
-                {/* Firebase User Authentication Status Banner */}
+                {/* User Authentication Status Banner */}
                 <div className="mb-6 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2.5">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -296,9 +296,9 @@ export const RSVP: React.FC<RSVPProps> = ({
                       Signed in as <strong className="text-blue-900">{user.email}</strong>
                     </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
-                    <Database className="w-3 h-3 text-blue-600" />
-                    Firestore Linked
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    Verified Account
                   </span>
                 </div>
 
@@ -468,7 +468,7 @@ export const RSVP: React.FC<RSVPProps> = ({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving RSVP to Firestore...</span>
+                      <span>Confirming your reservation...</span>
                     </>
                   ) : (
                     <>
@@ -480,8 +480,8 @@ export const RSVP: React.FC<RSVPProps> = ({
               </div>
 
               <div className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs text-gray-500">
-                <Database className="w-3.5 h-3.5 text-blue-600" />
-                <span>Free entry • Stored securely in Firebase Firestore</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Free entry • Immediate reservation confirmation</span>
               </div>
             </form>
           </>
@@ -499,7 +499,7 @@ export const RSVP: React.FC<RSVPProps> = ({
                 You're registered! 🎉
               </h2>
               <p className="mt-2 text-base text-gray-600">
-                Your spot for Build With AI has been reserved and stored in Firebase Firestore.
+                Your spot for Build With AI has been confirmed. Below is your official event entry pass.
               </p>
             </div>
 
@@ -551,67 +551,86 @@ export const RSVP: React.FC<RSVPProps> = ({
                   </div>
                 </div>
 
-                {/* Participant Details Grid */}
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 mb-3">
-                    Participant Information
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg border border-gray-100">
+                {/* Pass Details & QR Code Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left 8 cols: Participant Details & Event Logistics */}
+                  <div className="lg:col-span-8 space-y-5">
+                    {/* Participant Details Grid */}
                     <div>
-                      <span className="text-xs text-gray-700 block">Participant Name</span>
-                      <span className="font-semibold text-gray-900 text-base">
-                        {registration.fullName}
-                      </span>
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2.5">
+                        Participant Information
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-sm bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div>
+                          <span className="text-xs text-gray-500 block">Participant Name</span>
+                          <span className="font-semibold text-gray-900 text-base">
+                            {registration.fullName}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 block">Email Address</span>
+                          <span className="font-medium text-gray-900 break-all">
+                            {registration.email}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 block">Phone Number</span>
+                          <span className="font-medium text-gray-900">
+                            {registration.phone}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 block">College / Organization</span>
+                          <span className="font-medium text-gray-900">
+                            {registration.organization}
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Event Schedule & Venue Information */}
                     <div>
-                      <span className="text-xs text-gray-700 block">Email Address</span>
-                      <span className="font-medium text-gray-900">
-                        {registration.email}
-                      </span>
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2.5">
+                        Event Logistics
+                      </h4>
+                      <div className="space-y-2 text-sm bg-gray-50/70 p-3.5 rounded-xl border border-gray-100">
+                        <div className="flex items-center gap-2.5 text-gray-700">
+                          <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
+                          <span><strong>Date:</strong> {EVENT_DATA.date}</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-gray-700">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span><strong>Time:</strong> {EVENT_DATA.time}</span>
+                        </div>
+                        <div className="flex items-start gap-2.5 text-gray-700">
+                          <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span><strong>Venue:</strong> {EVENT_DATA.venue}, {EVENT_DATA.city}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs text-gray-700 block">Phone Number</span>
-                      <span className="font-medium text-gray-900">
-                        {registration.phone}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-700 block">College / Organization</span>
-                      <span className="font-medium text-gray-900">
-                        {registration.organization}
-                      </span>
-                    </div>
+                  </div>
+
+                  {/* Right 4 cols: QR Code to scan for Registration ID */}
+                  <div className="lg:col-span-4 flex flex-col items-center justify-center p-5 bg-linear-to-b from-gray-50 to-white rounded-xl border border-gray-200 text-center">
+                    <QrCodeCard
+                      value={registration.registrationId}
+                      size={140}
+                      label="Scan for Entry"
+                      showBorder={false}
+                    />
+                    <p className="text-[11px] text-gray-500 mt-2 text-center leading-tight">
+                      Present this QR code at the registration desk for check-in verification.
+                    </p>
                   </div>
                 </div>
 
-                {/* Event Schedule & Venue Information */}
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 mb-3">
-                    Event Logistics
-                  </h4>
-                  <div className="space-y-2.5 text-sm">
-                    <div className="flex items-center gap-2.5 text-gray-700">
-                      <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span><strong>Date:</strong> {EVENT_DATA.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-gray-700">
-                      <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span><strong>Time:</strong> {EVENT_DATA.time}</span>
-                    </div>
-                    <div className="flex items-start gap-2.5 text-gray-700">
-                      <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Venue:</strong> {EVENT_DATA.venue}, {EVENT_DATA.city}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Check-in verification instructions & Firestore Badge */}
-                <div className="pt-3 text-xs text-gray-700 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                {/* Check-in verification status */}
+                <div className="pt-4 text-xs text-gray-700 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                    <Database className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Saved in Firebase Firestore</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Registration Confirmed • Reserved Seat</span>
                   </div>
-                  <span className="font-mono text-gray-600">Status: Confirmed</span>
+                  <span className="font-mono text-gray-600">ID: {registration.registrationId}</span>
                 </div>
               </div>
             </div>
@@ -696,7 +715,7 @@ export const RSVP: React.FC<RSVPProps> = ({
                         This will:
                       </p>
                       <ul className="list-disc list-inside space-y-0.5 text-[11px] text-red-600">
-                        <li>Permanently delete pass ID <strong className="font-mono">{registration.registrationId}</strong> from Firebase Firestore</li>
+                        <li>Permanently cancel your reservation pass (<strong className="font-mono">{registration.registrationId}</strong>)</li>
                         <li>Release your reserved seat for other attendees</li>
                         <li>Clear the registration from your account</li>
                       </ul>

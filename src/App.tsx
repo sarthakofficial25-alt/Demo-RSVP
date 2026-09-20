@@ -11,7 +11,6 @@ import { RSVP } from './components/RSVP.tsx';
 import { Footer } from './components/Footer.tsx';
 import { RegistrationModal } from './components/RegistrationModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
-import { AdminRsvpModal } from './components/AdminRsvpModal.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { fetchUserRsvp, unRsvpFromFirestore } from './services/rsvpService.ts';
 import { Registration } from './data/eventData.ts';
@@ -23,7 +22,6 @@ function AppContent() {
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState<boolean>(false);
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
 
   const { user, openAuthModal } = useAuth();
 
@@ -164,7 +162,6 @@ function AppContent() {
         onRsvpClick={handleRsvpNavClick}
         hasRegistration={!!registration}
         onViewPass={() => setIsPassModalOpen(true)}
-        onOpenAdminRsvps={() => setIsAdminModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -207,7 +204,6 @@ function AppContent() {
       {/* Footer */}
       <Footer
         onNavClick={handleScrollToSection}
-        onOpenAdminRsvps={() => setIsAdminModalOpen(true)}
       />
 
       {/* Quick View Registration Modal */}
@@ -223,12 +219,6 @@ function AppContent() {
 
       {/* Firebase Sign In / Sign Up Modal */}
       <AuthModal onSuccess={showToast} />
-
-      {/* Admin Live Firestore RSVP & Sync Inspector */}
-      <AdminRsvpModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-      />
 
       {/* Subtle Toast Notification */}
       {toastMessage && (
