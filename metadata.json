@@ -1,0 +1,6 @@
+{
+  "name": "Build With AI",
+  "description": "Official event website for Build With AI organized by GDG on Campus FIEM. Learn, build, and connect with fellow developers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
